@@ -78,30 +78,32 @@ def collect_articles(start_date, end_date):
     return articles
 
 def upload_to_gdrive(df, filename):
-    # Convert DataFrame to CSV in UTF-8 bytes
-    csv_buffer = io.BytesIO()
-    df.to_csv(csv_buffer, index=False, encoding="utf-8")
-    csv_buffer.seek(0)
+    # Convert to CSV as UTF-8 bytes
+    buffer = io.BytesIO()
+    df.to_csv(buffer, index=False, encoding="utf-8")
+    buffer.seek(0)
 
-    # Build Google Drive service
+    # Google Drive auth
     credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
-    service = build("drive", "v3", credentials=credentials)
+    drive_service = build("drive", "v3", credentials=credentials)
 
-    # Metadata for Google Drive upload
-    file_metadata = {
-        "name": filename,
-        "mimeType": "text/csv"
-    }
+    # Minimal metadata (upload as plain CSV)
+    file_metadata = {"name": filename}
 
-    # Upload the CSV from memory
-    media = MediaIoBaseUpload(csv_buffer, mimetype="text/csv")
-    uploaded_file = service.files().create(
-        body=file_metadata,
-        media_body=media,
-        fields="webViewLink"
-    ).execute()
+    media = MediaIoBaseUpload(buffer, mimetype="text/csv")
 
-    return uploaded_file["webViewLink"]
+    try:
+        uploaded_file = drive_service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields="webViewLink"
+        ).execute()
+        return uploaded_file["webViewLink"]
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise e
+        
 if run:
     if end_date < start_date:
         st.error("End date must be after start date.")
