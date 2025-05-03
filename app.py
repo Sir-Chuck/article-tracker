@@ -78,22 +78,22 @@ def collect_articles(start_date, end_date):
     return articles
 
 def upload_to_gdrive(df, filename):
-    # Convert DataFrame to in-memory CSV
-    csv_buffer = io.StringIO()
-    df.to_csv(csv_buffer, index=False)
+    # Convert DataFrame to CSV in UTF-8 bytes
+    csv_buffer = io.BytesIO()
+    df.to_csv(csv_buffer, index=False, encoding="utf-8")
     csv_buffer.seek(0)
 
     # Build Google Drive service
     credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
     service = build("drive", "v3", credentials=credentials)
 
-    # Prepare upload metadata
+    # Metadata for Google Drive upload
     file_metadata = {
         "name": filename,
-        "mimeType": "application/vnd.google-apps.spreadsheet"  # Google Sheets type
+        "mimeType": "application/vnd.google-apps.spreadsheet"
     }
 
-    # Upload from memory
+    # Upload the CSV from memory
     media = MediaIoBaseUpload(csv_buffer, mimetype="text/csv")
     uploaded_file = service.files().create(
         body=file_metadata,
@@ -102,7 +102,6 @@ def upload_to_gdrive(df, filename):
     ).execute()
 
     return uploaded_file["webViewLink"]
-
 if run:
     if end_date < start_date:
         st.error("End date must be after start date.")
