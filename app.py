@@ -9,6 +9,8 @@ from io import StringIO
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
+import io
+from googleapiclient.http import MediaIoBaseUpload
 
 SHEETS_FOLDER_ID = '1HyRPfL6ziPQ-MHt8amJLhm9G5MSeIk6b'
 
@@ -76,21 +78,30 @@ def collect_articles(start_date, end_date):
     return articles
 
 def upload_to_gdrive(df, filename):
-    credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
-    service = build('drive', 'v3', credentials=credentials)
-
-    csv_buffer = StringIO()
+    # Convert DataFrame to in-memory CSV
+    csv_buffer = io.StringIO()
     df.to_csv(csv_buffer, index=False)
     csv_buffer.seek(0)
 
-    media = MediaIoBaseUpload(csv_buffer, mimetype='text/csv', resumable=True)
+    # Build Google Drive service
+    credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
+    service = build("drive", "v3", credentials=credentials)
+
+    # Prepare upload metadata
     file_metadata = {
-        'name': filename,
-        'mimeType': 'application/vnd.google-apps.spreadsheet',
-        'parents': [SHEETS_FOLDER_ID]
+        "name": filename,
+        "mimeType": "application/vnd.google-apps.spreadsheet"  # Google Sheets type
     }
-    file = service.files().create(body=file_metadata, media_body=media, fields='webViewLink').execute()
-    return file.get('webViewLink')
+
+    # Upload from memory
+    media = MediaIoBaseUpload(csv_buffer, mimetype="text/csv")
+    uploaded_file = service.files().create(
+        body=file_metadata,
+        media_body=media,
+        fields="webViewLink"
+    ).execute()
+
+    return uploaded_file["webViewLink"]
 
 if run:
     if end_date < start_date:
