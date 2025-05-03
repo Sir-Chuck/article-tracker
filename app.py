@@ -90,7 +90,7 @@ def upload_to_gdrive(df, filename):
     # Metadata for Google Drive upload
     file_metadata = {
         "name": filename,
-        "mimeType": "application/vnd.google-apps.spreadsheet"
+        "mimeType": "text/csv"
     }
 
     # Upload the CSV from memory
