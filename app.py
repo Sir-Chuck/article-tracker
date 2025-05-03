@@ -83,26 +83,27 @@ def upload_to_gdrive(df, filename):
     df.to_csv(buffer, index=False, encoding="utf-8")
     buffer.seek(0)
 
-    # Google Drive auth
+    # Google Drive service
     credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
     drive_service = build("drive", "v3", credentials=credentials)
 
-    # Minimal metadata (upload as plain CSV)
-    file_metadata = {"name": filename}
+    # 🔁 Replace this with your shared folder ID:
+    folder_id = "1idcJlXOupjlO02kSFyB-xrKNMKuz5IdW"
+
+    file_metadata = {
+        "name": filename,
+        "parents": [folder_id]
+    }
 
     media = MediaIoBaseUpload(buffer, mimetype="text/csv")
 
-    try:
-        uploaded_file = drive_service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields="webViewLink"
-        ).execute()
-        return uploaded_file["webViewLink"]
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise e
+    uploaded_file = drive_service.files().create(
+        body=file_metadata,
+        media_body=media,
+        fields="webViewLink"
+    ).execute()
+
+    return uploaded_file["webViewLink"]
         
 if run:
     if end_date < start_date:
