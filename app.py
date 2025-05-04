@@ -13,6 +13,16 @@ from googleapiclient.http import MediaIoBaseUpload
 st.set_page_config(page_title="New Yorker Article Tracker")
 st.title("📰 New Yorker Article Tracker")
 
+# 🔐 Passcode check
+passcode = st.text_input("Enter passcode to continue:", type="password")
+
+if passcode != "sir chuck tracker":
+    st.warning("🔒 Enter the correct passcode to access the tracker.")
+    st.stop()
+
+st.set_page_config(page_title="New Yorker Article Tracker")
+st.title("📰 New Yorker Article Tracker")
+
 # 📅 Date inputs
 col1, col2 = st.columns(2)
 with col1:
