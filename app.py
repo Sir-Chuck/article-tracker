@@ -1,132 +1,91 @@
 import streamlit as st
-from datetime import date, timedelta, datetime
 import requests
 from bs4 import BeautifulSoup
-import csv
-import time
+from datetime import datetime
 import pandas as pd
-from io import StringIO
+import io
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
-import io
-from googleapiclient.http import MediaIoBaseUpload
 
-SHEETS_FOLDER_ID = '1HyRPfL6ziPQ-MHt8amJLhm9G5MSeIk6b'
+st.set_page_config(page_title="New Yorker Article Tracker")
 
-st.set_page_config(page_title="New Yorker Scraper", layout="centered")
 st.title("📰 New Yorker Article Tracker")
-st.write("Select a date range and click 'Run Tracker' to generate a Google Sheet.")
 
-filename = st.text_input("Enter a name for your file:", value="newyorker_articles.csv")
+# 📅 Date inputs
+col1, col2 = st.columns(2)
+with col1:
+    start_date = st.date_input("Start date", datetime(2025, 1, 1))
+with col2:
+    end_date = st.date_input("End date", datetime.today())
 
-start_date = st.date_input("Start Date", value=date(2025, 1, 1))
-end_date = st.date_input("End Date", value=date.today())
-run = st.button("▶️ Run Tracker")
+# 📄 Optional file name
+default_name = f"newyorker_articles_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+filename = st.text_input("File name to upload to Drive:", value=default_name)
 
-def fetch_sitemap(year, month, week):
-    url = f"https://www.newyorker.com/sitemap.xml?month={month}&week={week}&year={year}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.content
-    return None
-
-def parse_sitemap(xml_content):
-    soup = BeautifulSoup(xml_content, 'xml')
-    return [url.loc.text for url in soup.find_all('url')]
-
-def extract_article_details(article_url):
-    try:
-        res = requests.get(article_url, timeout=10)
-        if res.status_code != 200:
-            return None
-        soup = BeautifulSoup(res.content, 'html.parser')
-
-        title = soup.find('h1').get_text(strip=True) if soup.find('h1') else 'No title'
-        author_tag = soup.find('span', class_='RiverByline-name') or soup.find('a', class_='byline__name') or soup.find('p', class_='ContributorBio-name')
-        author = author_tag.get_text(strip=True) if author_tag else soup.find('meta', {'name': 'author'}).get('content', 'Unknown') if soup.find('meta', {'name': 'author'}) else 'Unknown'
-        date_tag = soup.find('meta', {'property': 'article:published_time'})
-        pub_date = date_tag['content'].split('T')[0] if date_tag and 'content' in date_tag.attrs else 'Unknown'
-
-        return {
-            'title': title,
-            'author': author,
-            'publication_date': pub_date,
-            'url': article_url
-        }
-    except:
-        return None
-
-def collect_articles(start_date, end_date):
-    delta = timedelta(weeks=1)
-    current = start_date
-    articles = []
-    total_weeks = (end_date - start_date).days // 7 + 1
-    bar = st.progress(0)
-
-    for week_idx in range(total_weeks):
-        year, month = current.year, current.month
-        week = (current.day - 1) // 7 + 1
-        xml = fetch_sitemap(year, month, week)
-        if xml:
-            urls = parse_sitemap(xml)
-            for url in urls:
-                details = extract_article_details(url)
-                if details:
-                    articles.append(details)
-        current += delta
-        bar.progress((week_idx + 1) / total_weeks)
-
-    return articles
-
-def upload_to_gdrive(df, filename):
-    # Convert to CSV as UTF-8 bytes
-    buffer = io.BytesIO()
-    df.to_csv(buffer, index=False, encoding="utf-8")
-    buffer.seek(0)
-
-    # Google Drive service
-    credentials = service_account.Credentials.from_service_account_info(st.secrets["gcp_service_account"])
-    drive_service = build("drive", "v3", credentials=credentials)
-
-    # 🔁 Replace this with your shared folder ID:
-    folder_id = "1idcJlXOupjlO02kSFyB-xrKNMKuz5IdW"
-
-    file_metadata = {
-        "name": filename,
-        "parents": [folder_id]
-    }
-
-    media = MediaIoBaseUpload(buffer, mimetype="text/csv")
-
-    uploaded_file = drive_service.files().create(
-        body=file_metadata,
-        media_body=media,
-        fields="webViewLink"
-    ).execute()
-
-    return uploaded_file["webViewLink"]
-        
-if run:
+# 📥 Run tracker
+if st.button("Track Articles"):
     if end_date < start_date:
-        st.error("End date must be after start date.")
+        st.warning("⚠️ End date must be after start date.")
     else:
-        st.info(f"Scraping articles from {start_date} to {end_date}...")
-        t0 = time.time()
-        articles = collect_articles(start_date, end_date)
-        runtime = round((time.time() - t0) / 60, 2)
+        with st.status("🔎 Tracking articles..."):
+            base_url = "https://www.newyorker.com/sitemaps/sitemap-articles.xml"
+            response = requests.get(base_url)
+            soup = BeautifulSoup(response.content, "xml")
+            urls = soup.find_all("url")
 
-        if not articles:
-            st.warning("No articles found.")
-        else:
-            df = pd.DataFrame(articles)
-            st.success(f"✅ {len(df)} articles scraped in {runtime} minutes.")
-            st.dataframe(df.head())
-            if filename:
-            link = upload_to_gdrive(df, filename)
-            st.success(f"✅ File uploaded to Google Drive!")
-            st.markdown(f"[📂 Open File]({link})")
-        else:
-            st.warning("⚠️ Please enter a file name before uploading.")
+            data = []
+            for url in urls:
+                loc = url.find("loc").text
+                lastmod = url.find("lastmod").text[:10]
+                pub_date = datetime.strptime(lastmod, "%Y-%m-%d").date()
+                if start_date <= pub_date <= end_date:
+                    article_resp = requests.get(loc)
+                    article_soup = BeautifulSoup(article_resp.content, "html.parser")
+                    title_tag = article_soup.find("h1")
+                    author_tag = article_soup.find("a", attrs={"data-testid": "BylineName"})
 
-            st.markdown(f"📄 [View Google Sheet]({link})")
+                    title = title_tag.text.strip() if title_tag else "Unknown"
+                    author = author_tag.text.strip() if author_tag else "Unknown"
+
+                    data.append({
+                        "Title": title,
+                        "Author": author,
+                        "Publication Date": pub_date.isoformat(),
+                        "URL": loc
+                    })
+
+            if not data:
+                st.info("No articles found in that date range.")
+            else:
+                df = pd.DataFrame(data)
+                st.success(f"✅ Found {len(df)} articles.")
+                st.dataframe(df, use_container_width=True)
+
+                # Upload to Google Drive
+                if filename:
+                    def upload_to_gdrive(df, filename):
+                        buffer = io.BytesIO()
+                        df.to_csv(buffer, index=False, encoding="utf-8")
+                        buffer.seek(0)
+
+                        credentials = service_account.Credentials.from_service_account_info(
+                            st.secrets["gcp_service_account"]
+                        )
+                        drive_service = build("drive", "v3", credentials=credentials)
+
+                        folder_id = "1HyRPfL6ziPQ-MHt8amJLhm9G5MSeIk6b"  # your shared folder
+                        file_metadata = {"name": filename, "parents": [folder_id]}
+                        media = MediaIoBaseUpload(buffer, mimetype="text/csv")
+
+                        uploaded_file = drive_service.files().create(
+                            body=file_metadata, media_body=media, fields="webViewLink"
+                        ).execute()
+
+                        return uploaded_file["webViewLink"]
+
+                    link = upload_to_gdrive(df, filename)
+                    st.success("✅ File uploaded to Google Drive!")
+                    st.markdown(f"[📂 Open File]({link})")
+                else:
+                    st.warning("⚠️ Please enter a file name before uploading.")
