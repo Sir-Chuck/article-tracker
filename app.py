@@ -20,8 +20,12 @@ with col2:
     end_date = st.date_input("End date", datetime.today())
 
 # 📄 Optional file name
-default_name = f"newyorker_articles_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-filename = st.text_input("File name to upload to Drive:", value=default_name)
+# Store the default filename only once
+if "filename" not in st.session_state:
+    st.session_state.filename = f"newyorker_articles_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+
+filename = st.text_input("File name to upload to Drive:", value=st.session_state.filename)
+st.session_state.filename = filename  # Update it live
 
 # 📥 Run tracker
 if st.button("Track Articles"):
