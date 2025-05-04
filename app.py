@@ -15,12 +15,12 @@ from googleapiclient.http import MediaIoBaseUpload
 SHEETS_FOLDER_ID = '1HyRPfL6ziPQ-MHt8amJLhm9G5MSeIk6b'
 
 st.set_page_config(page_title="New Yorker Scraper", layout="centered")
-st.title("📰 New Yorker Article Scraper")
-st.write("Select a date range and click 'Run Scraper' to generate a Google Sheet.")
+st.title("📰 New Yorker Article Tracker")
+st.write("Select a date range and click 'Run Tracker' to generate a Google Sheet.")
 
 start_date = st.date_input("Start Date", value=date(2025, 1, 1))
 end_date = st.date_input("End Date", value=date.today())
-run = st.button("▶️ Run Scraper")
+run = st.button("▶️ Run Tracker")
 
 def fetch_sitemap(year, month, week):
     url = f"https://www.newyorker.com/sitemap.xml?month={month}&week={week}&year={year}"
