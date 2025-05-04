@@ -18,6 +18,8 @@ st.set_page_config(page_title="New Yorker Scraper", layout="centered")
 st.title("📰 New Yorker Article Tracker")
 st.write("Select a date range and click 'Run Tracker' to generate a Google Sheet.")
 
+filename = st.text_input("Enter a name for your file:", value="newyorker_articles.csv")
+
 start_date = st.date_input("Start Date", value=date(2025, 1, 1))
 end_date = st.date_input("End Date", value=date.today())
 run = st.button("▶️ Run Tracker")
@@ -120,5 +122,11 @@ if run:
             df = pd.DataFrame(articles)
             st.success(f"✅ {len(df)} articles scraped in {runtime} minutes.")
             st.dataframe(df.head())
-            link = upload_to_gdrive(df, "newyorker_articles.csv")
+            if filename:
+            link = upload_to_gdrive(df, filename)
+            st.success(f"✅ File uploaded to Google Drive!")
+            st.markdown(f"[📂 Open File]({link})")
+        else:
+            st.warning("⚠️ Please enter a file name before uploading.")
+
             st.markdown(f"📄 [View Google Sheet]({link})")
