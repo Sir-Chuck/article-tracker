@@ -8,6 +8,7 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 from dateutil.rrule import rrule, WEEKLY
+from uuid import uuid4
 
 st.set_page_config(page_title="New Yorker Article Tracker")
 st.title("📰 New Yorker Article Tracker")
@@ -47,15 +48,25 @@ def upload_to_gdrive(df, filename):
     )
     drive_service = build("drive", "v3", credentials=credentials)
 
-    folder_id = "1HyRPfL6ziPQ-MHt8amJLhm9G5MSeIk6b"  # 🔁 Replace if needed
-    file_metadata = {"name": filename, "parents": [folder_id]}
+    folder_id = "1HyRPfL6ziPQ-MHt8amJLhm9G5MSeIk6b"
+
+    # Ensure unique filename
+    safe_name = filename.rsplit(".", 1)[0]
+    unique_filename = f"{safe_name}_{uuid4().hex[:6]}.csv"
+
+    file_metadata = {"name": unique_filename, "parents": [folder_id]}
     media = MediaIoBaseUpload(buffer, mimetype="text/csv")
 
-    uploaded_file = drive_service.files().create(
-        body=file_metadata, media_body=media, fields="webViewLink"
-    ).execute()
-
-    return uploaded_file["webViewLink"]
+    try:
+        uploaded_file = drive_service.files().create(
+            body=file_metadata, media_body=media, fields="webViewLink"
+        ).execute()
+        return uploaded_file["webViewLink"]
+    except Exception as e:
+        st.error("❌ Upload failed.")
+        import traceback
+        st.code(traceback.format_exc())
+        raise e
 
 # ▶️ Main tracker logic
 if st.button("Track Articles"):
