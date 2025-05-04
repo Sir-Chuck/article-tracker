@@ -20,12 +20,12 @@ with col2:
     end_date = st.date_input("End date", datetime.today())
 
 # 📄 Optional file name
-# Store the default filename only once
-if "filename" not in st.session_state:
-    st.session_state.filename = f"newyorker_articles_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+# Set default filename only once
+if "default_filename" not in st.session_state:
+    st.session_state.default_filename = f"newyorker_articles_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
 
-filename = st.text_input("File name to upload to Drive:", value=st.session_state.filename)
-st.session_state.filename = filename  # Update it live
+# Use text_input with a persistent key
+filename = st.text_input("File name to upload to Drive:", key="default_filename")
 
 # 📥 Run tracker
 if st.button("Track Articles"):
@@ -88,7 +88,10 @@ if st.button("Track Articles"):
 
                         return uploaded_file["webViewLink"]
 
-                    link = upload_to_gdrive(df, filename)
+                    filename = st.session_state.default_filename
+                    if filename:
+                        link = upload_to_gdrive(df, filename)
+
                     st.success("✅ File uploaded to Google Drive!")
                     st.markdown(f"[📂 Open File]({link})")
                 else:
