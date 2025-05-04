@@ -10,8 +10,7 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
-st.set_page_config(page_title="New Yorker Article Tracker")
-st.title("📰 New Yorker Article Tracker")
+st.set_page_config(page_title="New Yorker Article Tracker")  # ✅ MUST be first Streamlit command
 
 # 🔐 Passcode check
 passcode = st.text_input("Enter passcode to continue:", type="password")
@@ -20,8 +19,7 @@ if passcode != "sir chuck tracker":
     st.warning("🔒 Enter the correct passcode to access the tracker.")
     st.stop()
 
-st.set_page_config(page_title="New Yorker Article Tracker")
-st.title("📰 New Yorker Article Tracker")
+st.title("📰 New Yorker Article Tracker")  # ← this can safely come after passcode check
 
 # 📅 Date inputs
 col1, col2 = st.columns(2)
