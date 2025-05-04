@@ -4,11 +4,11 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import pandas as pd
 import io
+from uuid import uuid4
+from dateutil.rrule import rrule, WEEKLY
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
-from dateutil.rrule import rrule, WEEKLY
-from uuid import uuid4
 
 st.set_page_config(page_title="New Yorker Article Tracker")
 st.title("📰 New Yorker Article Tracker")
@@ -48,9 +48,7 @@ def upload_to_gdrive(df, filename):
     )
     drive_service = build("drive", "v3", credentials=credentials)
 
-    folder_id = "1HyRPfL6ziPQ-MHt8amJLhm9G5MSeIk6b"
-
-    # Ensure unique filename
+    folder_id = "1HyRPfL6ziPQ-MHt8amJLhm9G5MSeIk6b"  # Your shared Drive folder
     safe_name = filename.rsplit(".", 1)[0]
     unique_filename = f"{safe_name}_{uuid4().hex[:6]}.csv"
 
@@ -82,7 +80,7 @@ if st.button("Track Articles"):
                     response = requests.get(sitemap_url)
                     soup = BeautifulSoup(response.content, "xml")
                     urls = soup.find_all("url")
-                    
+
                     for url in urls:
                         loc = url.find("loc").text
                         lastmod = url.find("lastmod").text[:10]
