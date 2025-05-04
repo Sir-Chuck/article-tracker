@@ -48,7 +48,7 @@ def upload_to_gdrive(df, filename):
     )
     drive_service = build("drive", "v3", credentials=credentials)
 
-    folder_id = "1HyRPfL6ziPQ-MHt8amJLhm9G5MSeIk6b"  # Your shared Drive folder
+    folder_id = "1idcJlXOupjlO02kSFyB-xrKNMKuz5IdW"  # Your shared Drive folder
     safe_name = filename.rsplit(".", 1)[0]
     unique_filename = f"{safe_name}_{uuid4().hex[:6]}.csv"
 
