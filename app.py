@@ -10,16 +10,27 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
-st.set_page_config(page_title="New Yorker Article Tracker")  # ✅ MUST be first Streamlit command
+# MUST be the first Streamlit command
+st.set_page_config(page_title="Article Tracker")
 
 # 🔐 Passcode check
 passcode = st.text_input("Enter passcode to continue:", type="password")
-
 if passcode != "sir chuck tracker":
     st.warning("🔒 Enter the correct passcode to access the tracker.")
     st.stop()
 
-st.title("📰 New Yorker Article Tracker")  # ← this can safely come after passcode check
+# 🎨 Custom-styled header
+st.markdown("""
+    <h1 style='font-family:Courier New; font-weight:normal; color:#2a2a2a;'>Article Tracker</h1>
+    <p style='font-family:Verdana; font-size:20px; color:#2a2a2a; margin-top:-10px;'>
+        by 
+        <span style='color:#f27802;'>C</span>
+        <span style='color:#2e0854;'>H</span>
+        <span style='color:#7786c8;'>U</span>
+        <span style='color:#708090;'>C</span>
+        <span style='color:#b02711;'>K</span>
+    </p>
+""", unsafe_allow_html=True)
 
 # 📅 Date inputs
 col1, col2 = st.columns(2)
@@ -56,7 +67,7 @@ def upload_to_gdrive(df, filename):
     )
     drive_service = build("drive", "v3", credentials=credentials)
 
-    folder_id = "1idcJlXOupjlO02kSFyB-xrKNMKuz5IdW"  # Your shared Drive folder
+    folder_id = "1idcJlXOupjlO02kSFyB-xrKNMKuz5IdW"
     safe_name = filename.rsplit(".", 1)[0]
     unique_filename = f"{safe_name}_{uuid4().hex[:6]}.csv"
 
